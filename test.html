@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Startline plan tests</title>
+<style>
+  body{font:15px/1.45 system-ui,sans-serif;margin:24px;background:#F2F4F8;color:#141B2D}
+  pre{white-space:pre-wrap}
+  .ok{color:#2C7A57} .bad{color:#AE4F18}
+</style>
+</head>
+<body>
+<pre id="out">Running…</pre>
+<iframe id="app" src="index.html" hidden></iframe>
+<script>
+const out=document.getElementById('out');
+const lines=[];
+let failed=0;
+function say(s){ lines.push(s); out.textContent=lines.join('\n'); }
+function fail(s){ failed++; say('FAIL  '+s); }
+function pass(s){ say('ok    '+s); }
+
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function iso(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function dow(d){ return (d.getDay()+6)%7; }
+function runTests(){
+  const w=document.getElementById('app').contentWindow;
+  const daysFor={
+    3:[0,2,6],
+    4:[0,2,4,6],
+    5:[0,1,3,5,6]
+  };
+  const base={
+    '10k':{weekly:'20', longest:'8', goalTime:'0:55', weeks:12},
+    half:{weekly:'25', longest:'12', goalTime:'1:50', weeks:18},
+    full:{weekly:'30', longest:'16', goalTime:'4:00', weeks:24}
+  };
+  function sundayWeeksAway(n){
+    const start=w.planStartMonday({});
+    return iso(addDays(start, 7*(n-1)+6));
+  }
+  function answers(dist, nDays, goal){
+    const b=base[dist];
+    return {
+      dist, raceName:'Test race', raceDate:sundayWeeksAway(b.weeks),
+      goal, goalTime:goal==='time'?b.goalTime:'',
+      weekly:b.weekly, longest:b.longest, injured:false,
+      runDays:daysFor[nDays].slice(), longDay:6, longDayPicked:true,
+      strDays:[], busy:[], hols:[], planStart:''
+    };
+  }
+  function checkPlan(label, P, raceDate){
+    if(!P || P.error){ fail(label+' — '+((P&&P.error)||'no plan')); return; }
+    let monOk=true, spanOk=true, under=null, raceEnd=true, raceOnDay=true;
+    P.weeks.forEach((wk,i)=>{
+      if(dow(wk.mon)!==0) monOk=false;
+      if(dow(addDays(wk.mon,6))!==6) spanOk=false;
+      if(i>0 && iso(wk.mon)!==iso(addDays(P.weeks[i-1].mon,7))) spanOk=false;
+      (wk.runs||[]).forEach(r=>{
+        if(!(+r.km>=3)) under=(under||(label+' week '+(i+1)+' '+r.type+' '+r.km+' km'));
+      });
+    });
+    const last=P.weeks[P.weeks.length-1];
+    if(iso(addDays(last.mon,6))!==iso(P.race)) raceEnd=false;
+    if(iso(P.race)!==raceDate) raceEnd=false;
+    const raceRun=(last.runs||[]).find(r=>r.type==='race');
+    if(!raceRun || iso(addDays(last.mon, raceRun.d))!==iso(P.race)) raceOnDay=false;
+    if((last.runs||[]).some(r=>r.d>dow(P.race))) raceOnDay=false;
+    if(!monOk) fail(label+' — a week does not start on Monday');
+    if(!spanOk) fail(label+' — a week is not Monday to Sunday');
+    if(under) fail(under);
+    if(!raceEnd) fail(label+' — race week does not end on the race date');
+    if(!raceOnDay) fail(label+' — the race is not the last run, on the race date');
+
+    let worst=0, worstLabel='', risesOk=true;
+    const built=[];
+    P.weeks.forEach(wk=>{
+      if((wk.phase==='Build' || wk.phase==='Peak') && !wk.cut) built.push(wk);
+    });
+    for(let i=1;i<built.length;i++){
+      const prev=built[i-1].total, curr=built[i].total;
+      if(!(prev>0)) continue;
+      const rise=(curr-prev)/prev;
+      if(rise>worst){ worst=rise; worstLabel='week '+(built[i].i+1)+' '+built[i].phase+' '+curr+' km after '+prev+' km'; }
+      if(curr > prev*1.12 + 1.01){ risesOk=false; fail(label+' — '+built[i].phase+' week '+(built[i].i+1)+' rises '+Math.round(rise*100)+'% ('+prev+' → '+curr+' km)'); }
+    }
+    if(monOk && spanOk && !under && raceEnd && raceOnDay && risesOk) pass(label+' — '+P.n+' weeks, biggest climb '+Math.round(worst*100)+'% '+worstLabel);
+  }
+
+  ['10k','half','full'].forEach(dist=>{
+    [3,4,5].forEach(nDays=>{
+      ['finish','time'].forEach(goal=>{
+        const a=answers(dist, nDays, goal);
+        checkPlan(dist+' · '+nDays+' days · '+goal, w.buildPlan(a), a.raceDate);
+      });
+    });
+  });
+
+  const warnA={
+    dist:'full', raceName:'Short marathon', raceDate:sundayWeeksAway(10),
+    goal:'finish', goalTime:'',
+    weekly:'15', longest:'10', injured:false,
+    runDays:[0,2,6], longDay:6, longDayPicked:true,
+    strDays:[], busy:[], hols:[], planStart:''
+  };
+  const warn=w.buildPlan(warnA);
+  checkPlan('marathon · 10 weeks · 15 km/week', warn, warnA.raceDate);
+  const heads=(warn.warnings||[]).map(x=>x.head);
+  const short=heads.some(h=>/short for a marathon/i.test(h));
+  const time=heads.some(h=>/not enough time/i.test(h));
+  if(short && time) pass('warnings — '+heads.join(' | '));
+  else fail('warnings did not both fire — '+(heads.join(' | ')||'none'));
+
+  say('');
+  say(failed? failed+' failed' : 'All checks passed.');
+}
+function start(){
+  const frame=document.getElementById('app');
+  if(frame.contentWindow && frame.contentWindow.buildPlan) runTests();
+  else setTimeout(start, 40);
+}
+start();
+</script>
+</body>
+</html>

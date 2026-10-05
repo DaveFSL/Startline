@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#2D4DB3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Startline">
 <title>Startline</title>
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="startline-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +36,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;padding:env(safe-area-inset-top,0px) 16px calc(48px + env(safe-area-inset-bottom,0px))}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;padding:env(safe-area-inset-top,0px) max(16px, env(safe-area-inset-right,0px)) calc(48px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px))}
 .wrap{max-width:620px;margin:0 auto}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -55,7 +61,7 @@ button{cursor:pointer}
 .field{display:flex;flex-direction:column;gap:7px}
 .field > span{font-weight:600;font-size:14px}
 .field small{color:var(--muted);font-size:13px}
-input[type=text],input[type=number],input[type=date],select{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px}
+input[type=text],input[type=password],input[type=number],input[type=date],select{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:11px 12px;font-size:16px}
 input:focus,select:focus{border-color:var(--track);outline:none}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -68,6 +74,8 @@ input:focus,select:focus{border-color:var(--track);outline:none}
 .range{display:grid;grid-template-columns:1fr 1fr 40px;gap:8px;align-items:center}
 .icon-btn{width:40px;height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--muted);font-size:18px}
 .link-btn{align-self:flex-start;background:none;border:none;color:var(--track);font-weight:600;padding:4px 0}
+.restore{align-self:center;text-align:center;text-decoration:underline;text-underline-offset:3px;font-size:15px;padding:0}
+.welcome-msg{margin:0;text-align:center;color:var(--warn);font-size:14px}
 .nav{display:flex;justify-content:space-between;gap:12px;margin-top:4px}
 .btn{border:none;border-radius:12px;padding:13px 20px;font-weight:700;font-size:16px}
 .btn.primary{background:var(--track);color:var(--surface)}
@@ -195,8 +203,17 @@ body.tracking{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 .tabbar{
   position:fixed;left:0;right:0;bottom:0;display:flex;gap:4px;
   background:var(--surface);border-top:1px solid var(--line);
-  padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));z-index:50;
+  padding:8px max(8px, env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(8px, env(safe-area-inset-left,0px));z-index:50;
 }
+.toast{
+  position:fixed;z-index:60;left:50%;width:min(588px, calc(100% - 32px));
+  bottom:calc(76px + env(safe-area-inset-bottom,0px));
+  transform:translateX(-50%);
+  background:var(--surface);border:1.5px solid var(--track);border-radius:14px;
+  padding:14px 16px;font-size:15px;line-height:1.45;
+  box-shadow:0 10px 28px rgba(20,27,45,.16);
+}
+.toast.gold{border-color:var(--mark)}
 .tabbar button{
   flex:1;border:0;background:transparent;border-radius:10px;padding:8px 2px;
   font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--muted);
@@ -291,10 +308,19 @@ function loadStore(){
     return (o && typeof o==='object') ? o : {};
   }catch(e){ return mem||{}; }
 }
-function saveStore(obj){
+function saveStore(obj, opts){
+  opts=opts||{};
+  if(!opts.quiet) obj.updatedAt=Date.now();
   mem=obj;
-  try{ localStorage.setItem(KEY, JSON.stringify(obj)); return true; }
-  catch(e){ return false; }
+  try{ localStorage.setItem(KEY, JSON.stringify(obj)); }
+  catch(e){ if(!opts.quiet) scheduleSync(); return false; }
+  if(!opts.quiet) scheduleSync();
+  return true;
+}
+function currentSync(){
+  const s=loadStore();
+  const sy=(s.sync && typeof s.sync==='object') ? s.sync : {};
+  return {token:String(sy.token||''), gistId:String(sy.gistId||''), auto:!!sy.auto};
 }
 function snapshotAnswers(){
   return {
@@ -456,6 +482,7 @@ function buildPlan(s){
 
   // turn each week into days
   const injEarly=i=>s.injured && i<4;
+  let prevLoad=0;
   weeks.forEach(wk=>{
     const runs=[];
     if(wk.phase==='Race week'){
@@ -465,9 +492,34 @@ function buildPlan(s){
         title:k===0?'Easy + race-effort touches':'Shakeout', desc:k===0?'Easy, with 4 × 1 min at race effort.':'Very easy. Lay out your race kit tonight.'}));
       runs.push({d:rd, type:'race', km:C.km, title:'Race day: '+(s.raceName||C.label), desc:pace?'Goal pace '+pace+'/km. Start a little slower than that.':'Start slower than feels right, and enjoy it.'});
     } else {
-      const l=Math.max(3,r1(wk.l)), others=days.length-1;
-      const rest=Math.max(0, wk.w-l), unit=rest/((others-1)+1.2);
-      const qkm=Math.max(3,r1(unit*1.2)), ekm=Math.max(3,r1(unit));
+      const others=days.length-1, nEasy=Math.max(0, others-1);
+      let longKm=Math.max(3,r1(wk.l));
+      const rest=Math.max(0, wk.w-longKm), unit=rest/((others-1)+1.2);
+      let qualKm=Math.max(3,r1(unit*1.2)), easyKm=Math.max(3,r1(unit));
+      const parts=[longKm, qualKm];
+      for(let n=0;n<nEasy;n++) parts.push(easyKm);
+      let aim=Math.max(3*parts.length, Math.round(wk.w));
+      if(prevLoad && !wk.cut && (wk.phase==='Build' || wk.phase==='Peak')) aim=Math.min(aim, Math.round(prevLoad*1.12));
+      const sumK=()=>parts.reduce((a,b)=>a+b,0);
+      let guard=0;
+      while(sumK()>aim && guard++<300){
+        let idx=-1;
+        for(let n=1;n<parts.length;n++) if(parts[n]>3 && (idx<0 || parts[n]>=parts[idx])) idx=n;
+        if(idx>=0) parts[idx]--;
+        else if(parts[0]>3) parts[0]--;
+        else break;
+      }
+      while(sumK()<aim && guard++<300){
+        let idx=-1;
+        for(let n=parts.length-1;n>=1;n--) if(parts[n]<parts[0] && (idx<0 || parts[n]<=parts[idx])) idx=n;
+        if(idx>=0) parts[idx]++;
+        else parts[0]++;
+        if(sumK()>aim){ if(idx>=0) parts[idx]--; else parts[0]--; break; }
+      }
+      longKm=parts[0]; qualKm=parts[1];
+      const easyParts=parts.slice(2);
+      if(!wk.cut && wk.phase!=='Taper') prevLoad=sumK();
+      const l=longKm, qkm=qualKm, ekm=easyKm;
       const p=buildPhasePos(wk.i);
       function buildPhasePos(i){ return (i-pre)/Math.max(1,buildN-pre); }
       let qT,qD;
@@ -484,7 +536,7 @@ function buildPlan(s){
       days.forEach(d=>{
         if(d===longDay) runs.push({d, type:'long', km:l, title:'Long run', desc:lD});
         else if(d===qDay) runs.push({d, type:'quality', km:qkm, title:qT, desc:qD});
-        else runs.push({d, type:'easy', km:ekm, title:'Easy', desc:'Relaxed pace. You should be able to chat.'});
+        else runs.push({d, type:'easy', km:easyParts.length?easyParts.shift():ekm, title:'Easy', desc:'Relaxed pace. You should be able to chat.'});
       });
     }
     wk.runs=runs;
@@ -594,6 +646,8 @@ const SCREENS=[
       <p class="disclaimer">This is general guidance, not medical advice. If you're injured, have a health condition or are new to exercise, check with a doctor or physio first. If something hurts, stop and get it looked at.</p>
       <label class="toggle"><input type="checkbox" id="agree" ${S.agreed?'checked':''}><span>I understand, let's go</span></label>
       ${nav('Start', S.agreed)}
+      <button type="button" class="link-btn restore" id="restoreBackup">Already have a plan? Restore from a backup</button>
+      ${welcomeMsg?`<p class="welcome-msg" role="status">${esc(welcomeMsg)}</p>`:''}
     </section>`,
 
   ()=>`<section class="panel">
@@ -733,7 +787,52 @@ function planScreen(kind){
 }
 
 /* ---------------- tracker ---------------- */
-let viewing=0, tab='week', changingPlan=false, importMsg='';
+let viewing=0, tab='week', changingPlan=false, importMsg='', welcomeMsg='', pendingBackup=null, restoreFrom='setup';
+let syncTimer=null, syncStatus='Off';
+const GIST_FILE='startline-data.json';
+const LONG_MSGS=[
+  'Long run banked. That one counts.',
+  'Long kilometres are where the engine gets built. Nice work.',
+  'That\'s this week\'s deposit in the race bank. Compound interest applies.',
+  'Legs: tired. Aerobic base: thriving. Exactly as prescribed.',
+  'Kilometres like that don\'t care about motivation — consistency wins.',
+  'Big one done. Now eat, drink, and put your feet up.',
+  'Another long one in the bank. Race-day you says thanks.'
+];
+const PERFECT_MSGS=[
+  '<b>Perfect week.</b> Every run, every kilometre.',
+  '<b>100%.</b> The plan bows to you this week.',
+  '<b>Full marks.</b> Every run done.',
+  '<b>100%.</b> Nothing missing this week.',
+  '<b>Perfect week.</b> This is how a big goal gets built — one solid week at a time.'
+];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+let toastTimer;
+function showToast(msg, gold){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const d=document.createElement('div');
+  d.className='toast'+(gold?' gold':'');
+  d.innerHTML=msg;
+  d.addEventListener('click',()=>d.remove());
+  document.body.appendChild(d);
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>d.remove(), 5200);
+}
+function findSession(dateIso, type){
+  if(!savedPlan) return null;
+  for(const week of savedPlan.weeks){
+    const run=(week.runs||[]).find(r=>iso(addDays(week.mon, r.d))===dateIso && r.type===type);
+    if(run) return {week, run};
+  }
+  return null;
+}
+function celebrate(found, before, wasDone){
+  if(!found) return;
+  const after=weekScore(found.week);
+  const nowDone=!!getEntry(iso(addDays(found.week.mon, found.run.d)), found.run.type).done;
+  if(after!==null && after>=100 && (before===null || before<100)) showToast(pick(PERFECT_MSGS), true);
+  else if(found.run.type==='long' && nowDone && !wasDone) showToast(pick(LONG_MSGS), false);
+}
 function kmPretty(n){
   const x=Math.round((+n)*10)/10;
   return Number.isFinite(x) ? String(x) : '0';
@@ -763,8 +862,7 @@ function setEntry(dateIso, type, patch){
   const prev=(log[key] && typeof log[key]==='object') ? log[key] : {};
   log[key]=Object.assign({}, prev, patch);
   s.log=log;
-  s.updatedAt=Date.now();
-  saveStore(s);
+  saveOk=saveStore(s);
 }
 function weekScore(wk){
   let planned=0, credited=0, any=false;
@@ -970,6 +1068,8 @@ function progressScreen(){
 }
 function setupScreen(){
   const C=CFG[S.dist];
+  const sy=currentSync();
+  if(!sy.token) syncStatus='Off';
   const goalBlock=S.goal==='time'
     ? goalTimeFields()
     : `<p class="setup-muted">Finish comfortably. Use Change my plan if you want a target time.</p>`;
@@ -985,7 +1085,16 @@ function setupScreen(){
     </div>
     <button type="button" class="btn ghost wide" id="askChange">Change my plan</button>
     <div id="changeBox" style="margin-top:10px"></div>
-    <div class="io section-gap">
+    <div class="setup-block section-gap">
+      <div class="setup-k">Sync</div>
+      <p class="setup-muted">Optional. You only need this to use the same plan on two devices.</p>
+      <label class="field" style="margin-top:10px"><span>GitHub token</span><input type="password" id="syncToken" autocomplete="off" value="${esc(sy.token)}" placeholder="ghp_…"></label>
+      <label class="field"><span>Sync file ID</span><input type="text" id="syncGist" autocomplete="off" value="${esc(sy.gistId)}" placeholder="Filled in after the first sync"></label>
+      <label class="toggle"><input type="checkbox" id="syncAuto" ${sy.auto?'checked':''}><span>Auto-sync after changes</span></label>
+      <p class="setup-muted" id="syncStatus">${esc(syncStatus)}</p>
+      <button type="button" class="btn ghost wide" id="syncNow">Sync now</button>
+    </div>
+    <div class="io">
       <button type="button" class="btn ghost" id="exportBackup">Export backup</button>
       <button type="button" class="btn ghost" id="importBackup">Import backup</button>
     </div>
@@ -1007,7 +1116,7 @@ function persistTracker(){
     answers:snapshotAnswers(),
     plan:savedPlan?serializePlan(savedPlan):prev.plan,
     log:(prev && prev.log) || {},
-    updatedAt:Date.now()
+    sync:currentSync()
   });
 }
 function syncGoalInputs(){
@@ -1032,6 +1141,113 @@ function syncGoalInputs(){
   S.goalTime=composed;
   refreshAfterEdit();
 }
+function syncPayload(){
+  const copy=JSON.parse(JSON.stringify(loadStore()));
+  if(copy.sync) delete copy.sync.token;
+  return JSON.stringify(copy);
+}
+function setSyncStatus(t){
+  syncStatus=t;
+  const el=$('#syncStatus');
+  if(el) el.textContent=t;
+}
+function scheduleSync(){
+  const sy=currentSync();
+  if(!sy.token || !sy.auto) return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(pushToGist, 2500);
+}
+function gistHeaders(token){
+  return {'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json'};
+}
+async function pushToGist(){
+  const sy=currentSync();
+  if(!sy.token) return;
+  setSyncStatus('Saving…');
+  try{
+    let res;
+    if(sy.gistId){
+      res=await fetch('https://api.github.com/gists/'+encodeURIComponent(sy.gistId), {method:'PATCH', headers:gistHeaders(sy.token),
+        body:JSON.stringify({files:{[GIST_FILE]:{content:syncPayload()}}})});
+    }else{
+      res=await fetch('https://api.github.com/gists', {method:'POST', headers:gistHeaders(sy.token),
+        body:JSON.stringify({description:'Startline training plan', public:false, files:{[GIST_FILE]:{content:syncPayload()}}})});
+      if(res.ok){
+        const j=await res.json();
+        const s=loadStore();
+        s.sync=currentSync();
+        s.sync.gistId=j.id||'';
+        saveStore(s, {quiet:true});
+      }
+    }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    setSyncStatus('Synced ✓ '+new Date().toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'}));
+    const g=$('#syncGist');
+    if(g && document.activeElement!==g) g.value=currentSync().gistId;
+  }catch(e){
+    setSyncStatus('Sync failed. Check the token and your connection.');
+  }
+}
+async function pullFromGist(manual){
+  const sy=currentSync();
+  if(!sy.token){ if(manual) setSyncStatus('Add a token first.'); return; }
+  if(!sy.gistId){ pushToGist(); return; }
+  setSyncStatus('Checking…');
+  try{
+    const res=await fetch('https://api.github.com/gists/'+encodeURIComponent(sy.gistId), {headers:gistHeaders(sy.token)});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const j=await res.json();
+    const f=j.files && j.files[GIST_FILE];
+    if(f && f.content){
+      const remote=JSON.parse(f.content);
+      if((remote.updatedAt||0) > (loadStore().updatedAt||0)){
+        const plan=hydratePlan(remote.plan);
+        if(!plan) throw new Error('bad plan');
+        if(remote.sync) delete remote.sync.token;
+        remote.sync=Object.assign({token:'', gistId:sy.gistId, auto:false}, remote.sync||{});
+        remote.sync.token=sy.token;
+        if(!remote.sync.gistId) remote.sync.gistId=sy.gistId;
+        remote.v=1;
+        saveStore(remote, {quiet:true});
+        S=blankAnswers();
+        if(remote.agreed) S.agreed=true;
+        if(remote.answers) applyAnswers(remote.answers);
+        if(remote.agreed) S.agreed=true;
+        savedPlan=plan;
+        mode='tracker';
+        changingPlan=false;
+        viewing=currentWeekIdx();
+        render();
+        setSyncStatus('Pulled the latest plan.');
+        return;
+      }
+    }
+    setSyncStatus('Up to date.');
+    if(manual) pushToGist();
+  }catch(e){
+    setSyncStatus('Sync failed. Check the token and your connection.');
+  }
+}
+function saveSyncField(key, value){
+  const s=loadStore();
+  const sy=currentSync();
+  sy[key]=String(value||'').trim();
+  s.sync=sy;
+  saveOk=saveStore(s, {quiet:true});
+  if(!sy.token){ setSyncStatus('Off'); return; }
+  if(key==='token') pullFromGist(true);
+  else setSyncStatus(sy.auto ? 'On' : 'On — tap Sync now');
+}
+function setAutoSync(on){
+  const s=loadStore();
+  const sy=currentSync();
+  sy.auto=!!on;
+  s.sync=sy;
+  saveOk=saveStore(s, {quiet:true});
+  if(!sy.token){ setSyncStatus('Off'); return; }
+  if(sy.auto){ setSyncStatus('On'); scheduleSync(); }
+  else setSyncStatus('On — tap Sync now');
+}
 function exportBackup(){
   try{
     const data=loadStore();
@@ -1045,32 +1261,65 @@ function exportBackup(){
     setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
   }catch(e){ importMsg='Could not export the backup.'; render({keepScroll:true}); }
 }
-function importBackup(file){
+function commitBackup(d, from){
+  const token=currentSync().token;
+  if(d.sync && typeof d.sync==='object') delete d.sync.token;
+  d.sync=Object.assign({token:'', gistId:'', auto:false}, d.sync||{});
+  if(token) d.sync.token=token;
+  d.v=1;
+  d.agreed=true;
+  const plan=hydratePlan(d.plan);
+  saveOk=saveStore(d);
+  S=blankAnswers();
+  S.agreed=true;
+  if(d.answers) applyAnswers(d.answers);
+  S.agreed=true;
+  savedPlan=plan;
+  mode='tracker';
+  changingPlan=false;
+  pendingBackup=null;
+  welcomeMsg='';
+  tab=from==='welcome' ? 'week' : 'settings';
+  viewing=currentWeekIdx();
+  importMsg=from==='welcome' ? '' : 'Backup restored.';
+  render();
+}
+function importFailed(from){
+  pendingBackup=null;
+  if(from==='welcome'){
+    welcomeMsg="That file isn't a Startline backup. Choose the .json file you exported from Setup.";
+    mode='questions';
+    step=0;
+    render();
+    return;
+  }
+  importMsg='That file could not be read. Use a backup exported from Startline.';
+  render({keepScroll:true});
+}
+function importBackup(file, from){
+  const source=from||'setup';
   const r=new FileReader();
   r.onload=()=>{
+    let d;
     try{
-      const d=JSON.parse(r.result);
+      d=JSON.parse(r.result);
       if(!d || typeof d!=='object' || !d.plan) throw new Error('no plan');
-      const plan=hydratePlan(d.plan);
-      if(!plan) throw new Error('bad plan');
-      if(d.sync) delete d.sync.token;
-      d.v=1; d.agreed=true;
-      saveOk=saveStore(d);
-      S=blankAnswers(); S.agreed=true;
-      if(d.answers) applyAnswers(d.answers);
-      S.agreed=true;
-      savedPlan=plan;
-      mode='tracker';
-      changingPlan=false;
-      tab='settings';
-      viewing=currentWeekIdx();
-      importMsg='Backup restored.';
-      render();
+      if(!hydratePlan(d.plan)) throw new Error('bad plan');
     }catch(e){
-      importMsg='That file could not be read. Use a backup exported from Startline.';
-      render({keepScroll:true});
+      importFailed(source);
+      return;
     }
+    if(source==='welcome' && d.agreed!==true && !S.agreed){
+      pendingBackup=d;
+      welcomeMsg='Tick "I understand, let\'s go" to restore this backup.';
+      mode='questions';
+      step=0;
+      render();
+      return;
+    }
+    commitBackup(d, source);
   };
+  r.onerror=()=>importFailed(source);
   r.readAsText(file);
 }
 function focusStrip(){
@@ -1092,7 +1341,7 @@ function beginPlan(){
     answers:snapshotAnswers(),
     plan:serializePlan(built),
     log:(prev && prev.log) || {},
-    updatedAt:Date.now()
+    sync:currentSync()
   };
   saveOk=saveStore(payload);
   savedPlan=hydratePlan(payload.plan);
@@ -1110,8 +1359,11 @@ function erasePlan(){
   changingPlan=false;
   tab='week';
   importMsg='';
+  welcomeMsg='';
+  pendingBackup=null;
+  syncStatus='Off';
   step=0;
-  saveOk=saveStore({v:1, agreed:true});
+  saveOk=saveStore({v:1, agreed:true}, {quiet:true});
   render();
 }
 
@@ -1209,8 +1461,12 @@ document.addEventListener('click',e=>{
   if(t.dataset.log){
     const date=t.dataset.date, type=t.dataset.type||'strength';
     const entry=getEntry(date, type);
+    const wasDone=!!entry.done;
+    const found=findSession(date, type);
+    const before=found ? weekScore(found.week) : null;
     if(t.dataset.log==='done' || t.dataset.log==='strength') setEntry(date, type, {done:!entry.done});
     else if(t.dataset.log==='cool') setEntry(date, type, {cooldown:!entry.cooldown});
+    if(t.dataset.log==='done') celebrate(found, before, wasDone);
     render({keepScroll:true});
     return;
   }
@@ -1277,18 +1533,28 @@ document.addEventListener('click',e=>{
     return;
   }
   if(t.id==='exportBackup'){ exportBackup(); return; }
-  if(t.id==='importBackup'){ const f=$('#importFile'); if(f) f.click(); return; }
+  if(t.id==='importBackup'){ restoreFrom='setup'; const f=$('#importFile'); if(f) f.click(); return; }
+  if(t.id==='restoreBackup'){ restoreFrom='welcome'; const f=$('#importFile'); if(f) f.click(); return; }
+  if(t.id==='syncNow'){ pullFromGist(true); return; }
 });
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.dataset && t.dataset.km) return;
   if(t.id==='agree'){
     S.agreed=t.checked;
+    if(t.checked && pendingBackup){
+      const d=pendingBackup;
+      pendingBackup=null;
+      welcomeMsg='';
+      commitBackup(d, 'welcome');
+      return;
+    }
     persistDraft();
     const next=$('#next'); if(next) next.disabled=!S.agreed;
     paintLanes();
     return;
   }
+  if(t.id==='syncToken' || t.id==='syncGist' || t.id==='syncAuto') return;
   if(t.id==='goalH' || t.id==='goalM'){ syncGoalInputs(); return; }
   if(t.id==='raceName') S.raceName=t.value;
   if(t.id==='raceDate') S.raceDate=t.value;
@@ -1302,13 +1568,20 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='goalH' || t.id==='goalM'){ syncGoalInputs(); return; }
+  if(t.id==='syncToken'){ saveSyncField('token', t.value); return; }
+  if(t.id==='syncGist'){ saveSyncField('gistId', t.value); return; }
+  if(t.id==='syncAuto'){ setAutoSync(t.checked); return; }
   if(t.dataset && t.dataset.km){
     const entry=getEntry(t.dataset.date, t.dataset.type);
+    const wasDone=!!entry.done;
+    const found=findSession(t.dataset.date, t.dataset.type);
+    const before=found ? weekScore(found.week) : null;
     const km=String(t.value).trim().replace(',', '.');
     const patch={km};
     if(km!=='') patch.done=true;
     else patch.done=!!entry.done;
     setEntry(t.dataset.date, t.dataset.type, patch);
+    celebrate(found, before, wasDone);
     render({keepScroll:true});
     return;
   }
@@ -1325,7 +1598,10 @@ function boot(){
     savedPlan=plan;
     mode='tracker';
     viewing=currentWeekIdx();
+    const sy=currentSync();
+    if(sy.token) syncStatus=sy.auto ? 'On' : 'On — tap Sync now';
     render();
+    if(sy.token) pullFromGist(false);
     return;
   }
   if(Number.isInteger(store.draftStep)) step=Math.min(6, Math.max(0, store.draftStep));
@@ -1336,8 +1612,13 @@ function boot(){
 const importFile=$('#importFile');
 if(importFile) importFile.addEventListener('change', e=>{
   const f=e.target.files && e.target.files[0];
+  const from=restoreFrom;
   e.target.value='';
-  if(f) importBackup(f);
+  restoreFrom='setup';
+  if(f) importBackup(f, from);
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && currentSync().token) pullFromGist(false);
 });
 boot();
 </script>
