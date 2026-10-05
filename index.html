@@ -111,6 +111,7 @@ details.wk summary::-webkit-details-marker{display:none}
 .tag.hol{background:var(--mark);color:var(--mark-ink)}
 .tag.busy{background:var(--warn-soft);color:var(--warn)}
 .tag.race{background:var(--mark);color:var(--mark-ink)}
+.tag.phase{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
 .days{border-top:1px solid var(--line);padding:6px 14px 12px}
 .day{display:grid;grid-template-columns:56px 1fr auto;gap:10px;padding-block:9px;border-bottom:1px dashed var(--line);align-items:start}
 .day:last-child{border-bottom:none}
@@ -124,13 +125,80 @@ details.wk summary::-webkit-details-marker{display:none}
 .day.race .t{color:var(--warn)}
 h3{font-family:var(--f-display);font-weight:700;font-size:22px;margin:4px 0 0;letter-spacing:.3px}
 .below{margin-top:22px}
+
+.top-side{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-left:auto}
+.countdown{margin:0;font-size:13px;font-weight:600;color:var(--muted);text-align:right;line-height:1.2;max-width:150px}
+.countdown b{display:block;font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--ink);letter-spacing:.2px}
+
+.horizon{display:flex;align-items:flex-end;gap:3px;height:72px;overflow-x:auto;padding:10px 4px 8px;scrollbar-width:none}
+.horizon::-webkit-scrollbar{display:none}
+.hbar{flex:0 0 12px;border:0;padding:0;border-radius:3px 3px 0 0;background:var(--track);opacity:.35;min-height:8px}
+.hbar.partial{opacity:1}
+.hbar.done{background:var(--good);opacity:1}
+.hbar.missed{background:var(--warn);opacity:1}
+.hbar.race{background:var(--mark);opacity:1}
+.hbar.current{outline:2px solid var(--ink);outline-offset:1px}
+.hbar.viewing{outline:2px solid var(--track);outline-offset:1px}
+.hbar.current.viewing{outline-color:var(--track)}
+.strip-legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--muted);margin:0 0 4px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.sw.ahead{background:var(--track);opacity:.35}
+.sw.partial{background:var(--track)}
+.sw.done{background:var(--good)}
+.sw.missed{background:var(--warn)}
+.sw.race{background:var(--mark)}
+
+.weeknav{display:flex;align-items:center;gap:8px;margin:10px 0}
+.week-arrow{width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:26px;line-height:1;color:var(--ink);flex:0 0 auto}
+.week-arrow:disabled{opacity:.35;cursor:not-allowed}
+.week-title{flex:1;text-align:center;min-width:0}
+.week-title h2{font-family:var(--f-display);font-weight:700;font-size:28px;line-height:1;margin:0;letter-spacing:.2px}
+.week-title .dates{font-size:13px;color:var(--muted);margin-top:3px}
+.thisweek-row{text-align:center;margin-bottom:8px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:12px}
+.badges .tag{margin-left:0}
+
+.score-panel{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.ring{position:relative;width:74px;height:74px;flex:0 0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:18px}
+.score-copy{flex:1;min-width:0}
+.score-copy .verdict{font-weight:700;font-size:16px}
+.score-copy .detail{font-size:13px;color:var(--muted);margin-top:2px}
+.score-copy .kms{font-size:13px;margin-top:6px;font-variant-numeric:tabular-nums}
+.score-note{font-size:12.5px;color:var(--muted);margin:-4px 2px 12px}
+
+.session{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start}
+.session.today{border-color:var(--track);background:var(--track-soft)}
+.session.rest{background:transparent;border-style:dashed}
+.session.type-strength{border-style:dashed}
+.session.type-long .s-title{color:var(--track)}
+.session.type-race .s-title{color:var(--warn)}
+.daychip{flex:0 0 54px;text-align:center;padding:6px 0;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-family:var(--f-display);font-weight:700;font-size:16px;letter-spacing:.3px}
+.daychip small{display:block;font-family:var(--f-body);font-weight:600;font-size:11px;color:var(--muted);letter-spacing:0;margin-top:2px}
+.s-main{flex:1;min-width:0}
+.s-title{font-weight:700;font-size:16px;line-height:1.25}
+.s-km{font-family:var(--f-display);font-weight:700}
+.s-desc{margin:3px 0 0;font-size:13.5px;color:var(--muted)}
+.s-log{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.km-input{width:76px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px;font-size:16px;text-align:center;font-weight:700}
+.km-lbl{font-size:12px;color:var(--muted)}
+.done-btn{flex:0 0 auto;width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);font-size:18px;align-self:center}
+.done-btn.on{background:var(--track);border-color:var(--track);color:var(--surface)}
+.session.type-long .done-btn.on,.session.type-race .done-btn.on{background:var(--mark);border-color:var(--mark);color:var(--mark-ink)}
+.cool-btn,.str-btn{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 12px;font-weight:600;font-size:14px}
+.cool-btn.on,.str-btn.on{background:var(--track);border-color:var(--track);color:var(--surface)}
+.session.rest .s-title{color:var(--muted);font-weight:600}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="brand"><img src="startline-icon-180.png" alt=""><span class="brand-text">Startline<small>Get race ready</small></span></div>
-    <nav class="lanes" id="lanes" aria-label="Steps"></nav>
+    <div class="top-side">
+      <p class="countdown" id="countdown" hidden></p>
+      <nav class="lanes" id="lanes" aria-label="Steps"></nav>
+    </div>
   </header>
   <main id="screen"></main>
 </div>
@@ -600,6 +668,198 @@ function planScreen(kind){
     ${erase}`;
 }
 
+/* ---------------- tracker ---------------- */
+let viewing=0;
+function kmPretty(n){
+  const x=Math.round((+n)*10)/10;
+  return Number.isFinite(x) ? String(x) : '0';
+}
+function currentWeekIdx(){
+  if(!savedPlan || !savedPlan.weeks || !savedPlan.weeks.length) return 0;
+  const now=mondayOf(today).getTime();
+  const weeks=savedPlan.weeks;
+  for(let i=0;i<weeks.length;i++){
+    if(weeks[i].mon && mondayOf(weeks[i].mon).getTime()===now) return i;
+  }
+  if(weeks[0].mon && now<mondayOf(weeks[0].mon).getTime()) return 0;
+  return weeks.length-1;
+}
+function getLog(){
+  const s=loadStore();
+  return (s.log && typeof s.log==='object') ? s.log : {};
+}
+function getEntry(dateIso, type){
+  const e=getLog()[dateIso+'|'+type];
+  return (e && typeof e==='object') ? e : {};
+}
+function setEntry(dateIso, type, patch){
+  const s=loadStore();
+  const log=(s.log && typeof s.log==='object') ? Object.assign({}, s.log) : {};
+  const key=dateIso+'|'+type;
+  const prev=(log[key] && typeof log[key]==='object') ? log[key] : {};
+  log[key]=Object.assign({}, prev, patch);
+  s.log=log;
+  s.updatedAt=Date.now();
+  saveStore(s);
+}
+function weekScore(wk){
+  let planned=0, credited=0, any=false;
+  (wk.runs||[]).forEach(r=>{
+    const km=+r.km||0;
+    planned+=km;
+    const e=getEntry(iso(addDays(wk.mon, r.d)), r.type);
+    if(!e.done) return;
+    any=true;
+    const actual=(e.km===''||e.km==null) ? km : (parseFloat(e.km)||0);
+    credited+=Math.min(actual, km);
+  });
+  if(!any || !planned) return null;
+  return Math.round(credited/planned*100);
+}
+function loggedKm(wk){
+  return (wk.runs||[]).reduce((sum,r)=>{
+    const e=getEntry(iso(addDays(wk.mon, r.d)), r.type);
+    if(!e.done) return sum;
+    const km=+r.km||0;
+    const actual=(e.km===''||e.km==null) ? km : (parseFloat(e.km)||0);
+    return sum+actual;
+  }, 0);
+}
+function scoreVerdict(s){
+  if(s>=100) return ['Perfect week — 100%','Every run done at full distance. Bank it and move on.'];
+  if(s>=85) return ['On plan','Close enough to full credit. Carry on to next week.'];
+  if(s>=60) return ['Close — move on','A solid week under real life. Carry on, or repeat the week if it felt hard.'];
+  return ['Repeat this week','Under 60%. Repeat this week before moving on. Never double up to catch up.'];
+}
+function paintCountdown(){
+  const el=$('#countdown');
+  if(!el) return;
+  if(mode!=='tracker' || !savedPlan || !savedPlan.race){ el.hidden=true; return; }
+  const name=S.raceName || (CFG[S.dist] ? CFG[S.dist].label : 'your race');
+  const days=Math.round((savedPlan.race-today)/864e5);
+  el.hidden=false;
+  if(days>1) el.innerHTML=`<b>${days} days</b>to ${esc(name)}`;
+  else if(days===1) el.innerHTML=`<b>1 day</b>to ${esc(name)}`;
+  else if(days===0) el.innerHTML=`<b>Race day</b>${esc(name)}`;
+  else el.innerHTML=`<b>Finished</b>${esc(name)}`;
+}
+function dayChip(di, date){
+  return `<div class="daychip">${DAYS[di]}<small>${fmt(date)}</small></div>`;
+}
+function runCard(date, r, isToday){
+  const key=iso(date);
+  const e=getEntry(key, r.type);
+  const kmVal=(e.km===undefined||e.km===null)?'':e.km;
+  return `<article class="session type-${esc(r.type)} ${e.done?'done':''} ${isToday?'today':''}">
+    ${dayChip(r.d, date)}
+    <div class="s-main">
+      <div class="s-title">${esc(r.title)} <span class="s-km">${esc(kmPretty(r.km))} km</span></div>
+      <p class="s-desc">${esc(r.desc)}</p>
+      <div class="s-log">
+        <input class="km-input" type="number" inputmode="decimal" min="0" step="0.1" placeholder="${esc(r.km)}" value="${fieldVal(kmVal)}" aria-label="Actual kilometres for ${DAYS[r.d]}" data-km="1" data-date="${key}" data-type="${esc(r.type)}">
+        <span class="km-lbl">km actual</span>
+        <button type="button" class="cool-btn ${e.cooldown?'on':''}" data-log="cool" data-date="${key}" data-type="${esc(r.type)}" aria-label="Cooldown and stretch for ${DAYS[r.d]}">${e.cooldown?'✓ ':''}Cooldown + stretch</button>
+      </div>
+    </div>
+    <button type="button" class="done-btn ${e.done?'on':''}" data-log="done" data-date="${key}" data-type="${esc(r.type)}" aria-label="Mark ${DAYS[r.d]} ${esc(r.title)} done">${e.done?'✓':''}</button>
+  </article>`;
+}
+function strengthCard(di, date, isToday){
+  const key=iso(date);
+  const e=getEntry(key, 'strength');
+  return `<article class="session type-strength ${isToday?'today':''}">
+    ${dayChip(di, date)}
+    <div class="s-main">
+      <div class="s-title">Strength</div>
+      <div class="s-log"><button type="button" class="str-btn ${e.done?'on':''}" data-log="strength" data-date="${key}" data-type="strength" aria-pressed="${e.done?'true':'false'}">${e.done?'✓ ':''}Strength done</button></div>
+    </div>
+  </article>`;
+}
+function restCard(di, date, isToday){
+  return `<article class="session rest ${isToday?'today':''}">${dayChip(di, date)}<div class="s-main"><div class="s-title">Rest</div></div></article>`;
+}
+function trackerScreen(){
+  const P=savedPlan;
+  if(!P || !P.weeks || !P.weeks.length) return `<section class="panel">${head('!','Almost there','The saved plan could not be read.')}</section>`;
+  if(viewing<0 || viewing>=P.weeks.length) viewing=0;
+  const cur=currentWeekIdx();
+  const wk=P.weeks[viewing];
+  const maxT=Math.max(...P.weeks.map(w=>+w.total||0), 1);
+  const bars=P.weeks.map((w,i)=>{
+    const h=Math.max(8, Math.round((+w.total||0)/maxT*52));
+    let state='ahead';
+    if(w.phase==='Race week') state='race';
+    else if(i<cur){
+      const s=weekScore(w);
+      state = s>=100 ? 'done' : (s>0 ? 'partial' : 'missed');
+    }
+    const cls=['hbar', state, i===cur?'current':'', i===viewing?'viewing':''].filter(Boolean).join(' ');
+    const label=`Week ${i+1}, ${w.phase}, ${kmPretty(w.total)} kilometres${state==='done'?', done':state==='partial'?', partial':state==='missed'?', missed':''}`;
+    return `<button type="button" class="${cls}" style="height:${h}px" data-week="${i}" aria-label="${esc(label)}" ${i===viewing?'aria-current="true"':''}></button>`;
+  }).join('');
+  const tags=[
+    `<span class="tag phase">${esc(wk.phase)}</span>`,
+    wk.cut?'<span class="tag cut">Lighter</span>':'',
+    wk.hol?'<span class="tag hol">Holiday</span>':'',
+    wk.busy?'<span class="tag busy">Busy</span>':'',
+    wk.phase==='Race week'?'<span class="tag race">Race</span>':''
+  ].join('');
+  const s=weekScore(wk);
+  const live=s===null?0:s;
+  const [verdict, detail]=s===null
+    ? ['No runs logged yet','Tap the tick to log a run. Leave the distance blank to count the planned kilometres.']
+    : scoreVerdict(s);
+  const planned=wk.runs.reduce((a,r)=>a+(+r.km||0),0);
+  const doneKm=loggedKm(wk);
+  const circ=2*Math.PI*31;
+  const ringColour=live>=100?'var(--mark)':live>=60?'var(--track)':'var(--warn)';
+  const days=DAYS.map((name,di)=>{
+    const date=addDays(wk.mon, di);
+    const run=(wk.runs||[]).find(r=>r.d===di);
+    const isToday=iso(date)===iso(today);
+    let html='';
+    if(run) html+=runCard(date, run, isToday);
+    if(S.strDays.includes(di)) html+=strengthCard(di, date, isToday);
+    if(!run && !S.strDays.includes(di)) html+=restCard(di, date, isToday);
+    return html;
+  }).join('');
+  const saveNote=saveOk?'':`<div class="alert warn"><strong>Could not save on this phone.</strong> Logs in this tab will disappear if you close it.</div>`;
+  return `${saveNote}
+    <div class="horizon" id="horizon" role="tablist" aria-label="All training weeks">${bars}</div>
+    <div class="strip-legend"><span><i class="sw ahead"></i>Ahead</span><span><i class="sw done"></i>Done</span><span><i class="sw partial"></i>Partial</span><span><i class="sw missed"></i>Missed</span><span><i class="sw race"></i>Race week</span></div>
+    <div class="weeknav">
+      <button type="button" class="week-arrow" id="prevWeek" aria-label="Previous week" ${viewing<=0?'disabled':''}>‹</button>
+      <div class="week-title"><h2>Week ${viewing+1} of ${P.n}</h2><div class="dates">${fmt(wk.mon)} – ${fmt(addDays(wk.mon,6))}${planned?` · ${esc(kmPretty(planned))} km planned`:''}</div></div>
+      <button type="button" class="week-arrow" id="nextWeek" aria-label="Next week" ${viewing>=P.weeks.length-1?'disabled':''}>›</button>
+    </div>
+    ${viewing!==cur?'<div class="thisweek-row"><button type="button" class="btn ghost" id="thisWeek">This week</button></div>':''}
+    <div class="badges">${tags}</div>
+    <div class="score-panel">
+      <div class="ring" aria-hidden="true">
+        <svg width="74" height="74" viewBox="0 0 74 74">
+          <circle cx="37" cy="37" r="31" fill="none" stroke="var(--line)" stroke-width="7"/>
+          <circle cx="37" cy="37" r="31" fill="none" stroke="${ringColour}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${circ*(1-Math.min(live,100)/100)}"/>
+        </svg>
+        <div class="pct">${s===null?'—':live+'%'}</div>
+      </div>
+      <div class="score-copy">
+        <div class="verdict">${esc(verdict)}</div>
+        <div class="detail">${esc(detail)}</div>
+        <div class="kms">${esc(kmPretty(doneKm))} / ${esc(kmPretty(planned))} km logged</div>
+      </div>
+    </div>
+    <p class="score-note">The score counts runs only: credit is the smaller of what you ran and what was planned. Strength and cooldown ticks are kept, and they don't change the percentage.</p>
+    ${days}
+    <div class="below" id="eraseBox"><button class="btn ghost wide" id="askErase" type="button">Erase plan and start again</button></div>`;
+}
+function focusStrip(){
+  const strip=$('#horizon');
+  const bar=strip && strip.querySelector('.hbar.viewing');
+  if(!bar) return;
+  const left=bar.offsetLeft-(strip.clientWidth-bar.offsetWidth)/2;
+  strip.scrollLeft=Math.max(0, left);
+}
+
 function beginPlan(){
   const built=buildPlan(S);
   if(built.error){ render(); return; }
@@ -616,6 +876,7 @@ function beginPlan(){
   saveOk=saveStore(payload);
   savedPlan=hydratePlan(payload.plan);
   mode='tracker';
+  viewing=currentWeekIdx();
   render();
 }
 function erasePlan(){
@@ -644,7 +905,9 @@ function render(opts){
   const keep=opts && opts.keepScroll;
   const y=keep?window.scrollY:0;
   paintLanes();
-  $('#screen').innerHTML = mode==='tracker' ? planScreen('saved') : SCREENS[step]();
+  paintCountdown();
+  $('#screen').innerHTML = mode==='tracker' ? trackerScreen() : SCREENS[step]();
+  if(mode==='tracker') focusStrip();
   live();
   window.scrollTo(0, y);
 }
@@ -685,6 +948,18 @@ function refreshAfterEdit(){
 
 document.addEventListener('click',e=>{
   const t=e.target.closest('button'); if(!t) return;
+  if(t.dataset.week!==undefined){ viewing=+t.dataset.week; render(); return; }
+  if(t.id==='prevWeek'){ if(viewing>0){ viewing--; render(); } return; }
+  if(t.id==='nextWeek'){ if(savedPlan && viewing<savedPlan.weeks.length-1){ viewing++; render(); } return; }
+  if(t.id==='thisWeek'){ viewing=currentWeekIdx(); render(); return; }
+  if(t.dataset.log){
+    const date=t.dataset.date, type=t.dataset.type||'strength';
+    const entry=getEntry(date, type);
+    if(t.dataset.log==='done' || t.dataset.log==='strength') setEntry(date, type, {done:!entry.done});
+    else if(t.dataset.log==='cool') setEntry(date, type, {cooldown:!entry.cooldown});
+    render({keepScroll:true});
+    return;
+  }
   if(t.id==='next'){
     if(!stepValid(step)) return;
     step=Math.min(6,step+1);
@@ -733,6 +1008,7 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('input',e=>{
   const t=e.target;
+  if(t.dataset && t.dataset.km) return;
   if(t.id==='agree'){
     S.agreed=t.checked;
     persistDraft();
@@ -752,6 +1028,15 @@ document.addEventListener('input',e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.dataset && t.dataset.km){
+    const entry=getEntry(t.dataset.date, t.dataset.type);
+    const patch={km:t.value};
+    if(t.value!=='') patch.done=true;
+    else patch.done=!!entry.done;
+    setEntry(t.dataset.date, t.dataset.type, patch);
+    render({keepScroll:true});
+    return;
+  }
   if(t.id==='longDay' || t.type==='date' || t.id==='injured') refreshAfterEdit();
 });
 
@@ -764,6 +1049,7 @@ function boot(){
   if(plan){
     savedPlan=plan;
     mode='tracker';
+    viewing=currentWeekIdx();
     render();
     return;
   }
